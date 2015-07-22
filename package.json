@@ -1,0 +1,23 @@
+{
+  "name": "rxtodo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify src/main.es6 -t babelify --outfile out/main.js",
+    "watch": "watchify src/main.es6 -t babelify --outfile out/main.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jquery": "^2.1.4",
+    "rx": "^2.5.3"
+  },
+  "devDependencies": {
+    "babel": "^5.8.3",
+    "babelify": "^6.1.3",
+    "browserify": "^11.0.0",
+    "watchify": "^3.3.0"
+  }
+}
