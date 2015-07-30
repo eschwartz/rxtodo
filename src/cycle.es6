@@ -3,59 +3,68 @@ import {h, makeDOMDriver} from '@cycle/web';
 import {Observable, BehaviorSubject} from 'rx';
 import _ from 'lodash';
 
-function main(responses) {
-  var updates = new BehaviorSubject(x => x);
 
-  var todos = updates.
-    scan([], (todos, operation) => operation(todos));
+function intent(DOM) {
+  return {
+    addItem: DOM.get('input', 'change').
+      map(evt => {
+        var value = evt.target.value;
+        evt.target.value = '';
+        evt.target.focus();
+        return value;
+      }).
+      filter(val => val.trim().length).
+      map(val => ({
+        id: _.uniqueId('item_'),
+        val: val
+      })).
+      map(item =>
+          todos => todos.concat(item))
+    ,
+    removeItem: DOM.get('.deleteBtn', 'click').
+      map(evt => ({
+        id: evt.target.dataset.itemId
+      })).
+      map(deletedItem =>
+          todos => todos.filter(item => item.id !== deletedItem.id))
+  }
+}
 
-  var state = todos.
+function model(actions) {
+  return Observable.merge(
+    actions.addItem,
+    actions.removeItem
+  ).
+    scan([], (todos, action) => action(todos)).
     startWith([]).
     map(todos => ({
       items: todos
     }));
+}
 
-  responses.DOM.get('input', 'change').
-    map(evt => {
-      var value = evt.target.value;
-      evt.target.value = '';
-      evt.target.focus();
-      return value;
-    }).
-    filter(val => val.trim().length).
-    map(val => ({
-      id: _.uniqueId('item_'),
-      val: val
-    })).
-    map(item =>
-        todos => todos.concat(item)).
-    subscribe(updates);
+function view(state) {
+  return state.map(state =>
+      h('div', [
+        h('input', {type: 'text'}),
+        h('ul', state.items.map(item =>
+            h('li', [
+              item.val,
+              h('button', {
+                attributes: {
+                  'data-item-id': item.id,
+                  'class': 'deleteBtn'
+                }
+              }, ['X'])
+            ])
+        ))
+      ])
+  );
+}
 
-  responses.DOM.get('.deleteBtn', 'click').
-    map(evt => ({
-      id: evt.target.dataset.itemId
-    })).
-    map(deletedItem =>
-      todos => todos.filter(item => item.id !== deletedItem.id)).
-      subscribe(updates);
-
+function main({DOM}) {
   return {
-    DOM: state.map(state =>
-        h('div', [
-          h('input', {type: 'text'}),
-          h('ul', state.items.map(item =>
-              h('li', [
-                item.val,
-                h('button', {
-                  attributes: {
-                    'data-item-id': item.id,
-                    'class': 'deleteBtn'
-                  }
-                }, ['X'])
-              ])
-          ))
-        ])
-    ).catch(function() {
+    DOM: view(model(intent(DOM)))
+      .catch(() => {
         debugger;
       })
   }
