@@ -4,20 +4,20 @@ import {Observable, BehaviorSubject} from 'rx';
 import _ from 'lodash';
 
 
-var Actions = {
+var StateChangers = {
   AddItem: item =>
       state => _.extend(state, {
-    items: state.items.concat(item)
-  }),
+        items: state.items.concat(item)
+      }),
   RemoveById: item =>
       state => _.extend(state, {
-    items: state.items.filter(i => i.id !== item.id)
-  })
+          items: state.items.filter(i => i.id !== item.id)
+        })
 };
 
 function intent(DOM) {
   return {
-    addItem: DOM.get('input', 'change').
+    newItems: DOM.get('input', 'change').
       map(evt => {
         var value = evt.target.value;
         evt.target.value = '';
@@ -28,14 +28,11 @@ function intent(DOM) {
       map(val => ({
         id: _.uniqueId('item_'),
         val: val
-      })).
-      map(item => Actions.AddItem(item))
-    ,
-    removeItem: DOM.get('.deleteBtn', 'click').
+      })),
+    deletedItems: DOM.get('.deleteBtn', 'click').
       map(evt => ({
         id: evt.target.dataset.itemId
-      })).
-      map(item => Actions.RemoveById(item))
+      }))
   }
 }
 
@@ -45,12 +42,18 @@ Observable.fromActions = function(actions, seed) {
     scan(seed, (seedVal, action) => action(seedVal));
 };
 
+Observable.prototype.applyTo = function(seed) {
+  return this.scan(seed, (seedVal, operation) => operation(seedVal)).startWith(seed);
+};
+
 function model(actions) {
-  var initialState = {
-    items: []
-  };
-  return Observable.fromActions(_.values(actions), initialState).
-    startWith(initialState);
+  return Observable.merge(
+    actions.newItems.map(StateChangers.AddItem),
+    actions.deletedItems.map(StateChangers.RemoveById)
+  ).
+    applyTo({
+      items: []
+    });
 }
 
 function view(state) {
@@ -77,6 +80,7 @@ function main({DOM}) {
     DOM: view(model(intent(DOM)))
       .catch((err) => {
         console.err(err.stack);
+        debugger;
       })
   }
 }
