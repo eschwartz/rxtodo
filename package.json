@@ -12,7 +12,8 @@
   "license": "ISC",
   "dependencies": {
     "jquery": "^2.1.4",
-    "rx": "^2.5.3"
+    "rx": "^2.5.3",
+    "virtual-dom": "^2.1.0"
   },
   "devDependencies": {
     "babel": "^5.8.3",

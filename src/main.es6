@@ -1,6 +1,10 @@
 import {Observable, BehaviorSubject} from 'rx';
 import $ from 'jquery';
 import _ from 'lodash';
+import h from 'virtual-dom/h';
+import diff from 'virtual-dom/diff';
+import patch from 'virtual-dom/patch';
+import createElement from 'virtual-dom/create-element';
 
 
 Observable.fromLiveEvent = function($scope, eventType, selector) {
@@ -45,6 +49,8 @@ var todos$ = Observable.merge(
 ).
   scan([], (todos, operation) => operation(todos));
 
+var operations$ = new BehaviorSubject(x => x);
+
 var state$ = todos$.
   startWith([]).
   map(todos => ({
@@ -52,15 +58,33 @@ var state$ = todos$.
   })).
   forEach(render);
 
+var tree, rootNode;
 function render(state) {
-  return $app.html(`
-    <input type="text" />
-    <ul>
-      ${state.items.map(item => `
-        <li>${item.val} <button data-item-id="${item.id}" class="deleteBtn">X</button></li>
-      `).join('')}
-    </ul>
-  `);
+  var newTree =  h('div', [
+    h('input', {
+      type: 'text'
+    }),
+    h('ul', state.items.map(item =>
+      h('li', [
+        item.val,
+        h('button', {
+          'data-item-id': item.id,
+          'class': 'deleteBtn'
+        }, ['X'])
+      ])
+    ))
+  ]);
+
+  if (!tree) {
+    tree = newTree;
+    rootNode = createElement(tree);
+    document.body.appendChild(rootNode);
+    return;
+  }
+
+  var patches = diff(tree, newTree);
+  rootNode = patch(rootNode, patches);
+  tree = newTree;
 }
 
 function RemoveItemAction(item) {
