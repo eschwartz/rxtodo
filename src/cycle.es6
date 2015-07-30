@@ -4,6 +4,17 @@ import {Observable, BehaviorSubject} from 'rx';
 import _ from 'lodash';
 
 
+var Actions = {
+  AddItem: item =>
+      state => _.extend(state, {
+        items: state.items.concat(item)
+      }),
+  RemoveById: item =>
+      state => _.extend(state, {
+        items: state.items.filter(i => i.id !== item.id)
+      })
+};
+
 function intent(DOM) {
   return {
     addItem: DOM.get('input', 'change').
@@ -18,28 +29,31 @@ function intent(DOM) {
         id: _.uniqueId('item_'),
         val: val
       })).
-      map(item =>
-          todos => todos.concat(item))
+      map(item => Actions.AddItem(item))
     ,
     removeItem: DOM.get('.deleteBtn', 'click').
       map(evt => ({
         id: evt.target.dataset.itemId
       })).
-      map(deletedItem =>
-          todos => todos.filter(item => item.id !== deletedItem.id))
+      map(item => Actions.RemoveById(item))
   }
 }
+
+Observable.prototype.applyActions = function(seed) {
+  return this.scan(seed, (seedVal, operation) => operation(seedVal));
+};
 
 function model(actions) {
   return Observable.merge(
     actions.addItem,
     actions.removeItem
   ).
-    scan([], (todos, action) => action(todos)).
-    startWith([]).
-    map(todos => ({
-      items: todos
-    }));
+    applyActions({
+      items: []
+    }).
+    startWith({
+      items: []
+    });
 }
 
 function view(state) {
@@ -64,8 +78,8 @@ function view(state) {
 function main({DOM}) {
   return {
     DOM: view(model(intent(DOM)))
-      .catch(() => {
-        debugger;
+      .catch((err) => {
+        console.err(err.stack);
       })
   }
 }
