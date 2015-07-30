@@ -7,12 +7,12 @@ import _ from 'lodash';
 var Actions = {
   AddItem: item =>
       state => _.extend(state, {
-        items: state.items.concat(item)
-      }),
+    items: state.items.concat(item)
+  }),
   RemoveById: item =>
       state => _.extend(state, {
-        items: state.items.filter(i => i.id !== item.id)
-      })
+    items: state.items.filter(i => i.id !== item.id)
+  })
 };
 
 function intent(DOM) {
@@ -39,21 +39,18 @@ function intent(DOM) {
   }
 }
 
-Observable.prototype.applyActions = function(seed) {
-  return this.scan(seed, (seedVal, operation) => operation(seedVal));
+
+Observable.fromActions = function(actions, seed) {
+  return Observable.merge.apply(Observable, actions).
+    scan(seed, (seedVal, action) => action(seedVal));
 };
 
 function model(actions) {
-  return Observable.merge(
-    actions.addItem,
-    actions.removeItem
-  ).
-    applyActions({
-      items: []
-    }).
-    startWith({
-      items: []
-    });
+  var initialState = {
+    items: []
+  };
+  return Observable.fromActions(_.values(actions), initialState).
+    startWith(initialState);
 }
 
 function view(state) {
