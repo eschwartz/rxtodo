@@ -29,10 +29,8 @@ function intent(DOM) {
         id: _.uniqueId('item_'),
         val: val
       })),
-    deletedItems: DOM.get('.deleteBtn', 'click').
-      map(evt => ({
-        id: evt.target.dataset.itemId
-      }))
+    deletedItems: DOM.get('li', 'remove').
+      map(evt => evt.detail)
   }
 }
 
@@ -61,15 +59,11 @@ function view(state) {
       h('div', [
         h('input', {type: 'text'}),
         h('ul', state.items.map(item =>
-            h('li', [
-              item.val,
-              h('button', {
-                attributes: {
-                  'data-item-id': item.id,
-                  'class': 'deleteBtn'
-                }
-              }, ['X'])
-            ])
+            h('item', {
+              val: item.val,
+              id: item.id,
+              key: item.id
+            })
         ))
       ])
   );
@@ -86,5 +80,7 @@ function main({DOM}) {
 }
 
 window.debug = run(main, {
-  DOM: makeDOMDriver('#app')
+  DOM: makeDOMDriver('#app', {
+    item: require('./element/item')
+  })
 });
