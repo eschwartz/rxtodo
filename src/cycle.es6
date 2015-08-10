@@ -1,6 +1,6 @@
 import {run} from '@cycle/core';
 import {h, makeDOMDriver} from '@cycle/web';
-import {Observable, BehaviorSubject} from 'rx';
+import {Observable, BehaviorSubject} from './ext/rx-ext';
 import _ from 'lodash';
 
 
@@ -33,16 +33,6 @@ function intent(DOM) {
       map(evt => evt.detail)
   }
 }
-
-
-Observable.fromActions = function(actions, seed) {
-  return Observable.merge.apply(Observable, actions).
-    scan(seed, (seedVal, action) => action(seedVal));
-};
-
-Observable.prototype.applyTo = function(seed) {
-  return this.scan(seed, (seedVal, operation) => operation(seedVal)).startWith(seed);
-};
 
 function model(actions) {
   return Observable.merge(
