@@ -1,5 +1,5 @@
 import {run} from '@cycle/core';
-import {h, makeDOMDriver} from '@cycle/web';
+import {h, makeDOMDriver} from '@cycle/dom';
 import {Observable, BehaviorSubject} from 'rx';
 import _ from 'lodash';
 
@@ -33,7 +33,6 @@ module.exports = function Item(responses) {
   return {
     DOM: view(state).catch((err) => {
       console.error(err.stack);
-      debugger;
     }),
     events: {
       remove: actions.remove.

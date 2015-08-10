@@ -1,5 +1,5 @@
 import {run} from '@cycle/core';
-import {h, makeDOMDriver} from '@cycle/web';
+import {h, makeDOMDriver} from '@cycle/dom';
 import {Observable, BehaviorSubject} from './ext/rx-ext';
 import _ from 'lodash';
 

@@ -11,9 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@cycle/core": "^1.0.1",
-    "@cycle/dom": "^3.1.1",
-    "@cycle/web": "^2.2.2",
+    "@cycle/core": "~2.0.1",
+    "@cycle/dom": "~4.0.1",
     "jquery": "^2.1.4",
     "rx": "^2.5.3",
     "virtual-dom": "^2.1.0"
