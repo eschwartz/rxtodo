@@ -73,7 +73,7 @@ function main({DOM}) {
   return {
     DOM: view(model(intent(DOM)))
       .catch((err) => {
-        console.err(err.stack);
+        console.error(err.stack);
         debugger;
       })
   }

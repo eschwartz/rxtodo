@@ -32,7 +32,7 @@ module.exports = function Item(responses) {
   var state = model(responses.props, actions);
   return {
     DOM: view(state).catch((err) => {
-      console.err(err.stack);
+      console.error(err.stack);
       debugger;
     }),
     events: {
