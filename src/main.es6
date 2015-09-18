@@ -1,10 +1,10 @@
 import {run} from '@cycle/core';
 import {h, makeDOMDriver} from '@cycle/dom';
-import {Observable, BehaviorSubject} from './ext/rx-ext';
+import {Observable, BehaviorSubject} from 'rx';
 import _ from 'lodash';
 
 
-var StateChangers = {
+var Operation = {
   AddItem: item =>
       state => _.extend(state, {
     items: state.items.concat(item)
@@ -18,12 +18,7 @@ var StateChangers = {
 function intent(DOM) {
   return {
     newItems: DOM.get('input', 'change').
-      map(evt => {
-        var value = evt.target.value;
-        evt.target.value = '';
-        evt.target.focus();
-        return value;
-      }).
+      map(evt => evt.target.value).
       filter(val => val.trim().length).
       map(val => ({
         id: _.uniqueId('item_'),
@@ -35,19 +30,20 @@ function intent(DOM) {
 }
 
 function model(actions) {
-  return Observable.merge(
-    actions.newItems.map(StateChangers.AddItem),
-    actions.deletedItems.map(StateChangers.RemoveById)
-  ).
-    applyTo({
-      items: []
-    });
+  return Observable.
+    merge(
+      actions.newItems.map(item => Operation.AddItem(item)),
+      actions.deletedItems.map(item => Operation.RemoveById(item))
+    ).
+    scan({ items: [] }, (state, operation) => operation(state));
 }
 
 function view(state) {
-  return state.map(state =>
+  return state.
+    startWith({ items: [] }).
+    map(state =>
       h('div', [
-        h('input', {type: 'text'}),
+        h('input', {type: 'text', value: ''}),
         h('ul', state.items.map(item =>
             h('item', {
               val: item.val,
