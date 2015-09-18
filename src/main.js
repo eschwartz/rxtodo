@@ -47,8 +47,7 @@ function view(state) {
         h('ul', state.items.map(item =>
             h('item', {
               val: item.val,
-              id: item.id,
-              key: item.id
+              id: item.id
             })
         ))
       ])
