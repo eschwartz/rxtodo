@@ -1,97 +1,76 @@
-import {Observable, BehaviorSubject} from 'rx';
-import $ from 'jquery';
+import {run} from '@cycle/core';
+import {h, makeDOMDriver} from '@cycle/dom';
+import {Observable, BehaviorSubject} from './ext/rx-ext';
 import _ from 'lodash';
-import h from 'virtual-dom/h';
-import diff from 'virtual-dom/diff';
-import patch from 'virtual-dom/patch';
-import createElement from 'virtual-dom/create-element';
 
 
-Observable.fromLiveEvent = function($scope, eventType, selector) {
-  return Observable.create(observer => {
-    var handler = evt => observer.onNext(evt);
-    $scope.on(eventType, selector, handler);
-
-    return () => $scope.off(eventType, selector, handler);
-  });
+var StateChangers = {
+  AddItem: item =>
+      state => _.extend(state, {
+    items: state.items.concat(item)
+  }),
+  RemoveById: item =>
+      state => _.extend(state, {
+    items: state.items.filter(i => i.id !== item.id)
+  })
 };
 
-$.prototype.observeEvent = function(eventType, selector) {
-  return Observable.fromLiveEvent(this, eventType, selector);
-};
-
-$('body').html(`<div id="app"></div>`);
-
-
-var $app = $('#app');
-
-// Stream of added todo items
-var newItems$ = $app.observeEvent('change', 'input').
-  // ignore empty values
-  filter(evt => evt.target.value.trim().length).
-  // map to an Item object
-  map(evt => ({
-    id: _.uniqueId('item_'),
-    val: evt.target.value
-  }));
-
-// Stream of deleted todo items
-var deletedItems$ = $app.observeEvent('click', 'li > .deleteBtn').
-  // Map to an item object
-  map(evt => ({
-    id: evt.target.dataset.itemId
-  }));
-
-// Merge add/remove actions into a todo list
-var todos$ = Observable.merge(
-  newItems$.map(AddItemAction),
-  deletedItems$.map(RemoveItemAction)
-).
-  scan([], (todos, operation) => operation(todos));
-
-var operations$ = new BehaviorSubject(x => x);
-
-var state$ = todos$.
-  startWith([]).
-  map(todos => ({
-    items: todos
-  })).
-  forEach(render);
-
-var tree, rootNode;
-function render(state) {
-  var newTree =  h('div', [
-    h('input', {
-      type: 'text'
-    }),
-    h('ul', state.items.map(item =>
-      h('li', [
-        item.val,
-        h('button', {
-          'data-item-id': item.id,
-          'class': 'deleteBtn'
-        }, ['X'])
-      ])
-    ))
-  ]);
-
-  if (!tree) {
-    tree = newTree;
-    rootNode = createElement(tree);
-    document.body.appendChild(rootNode);
-    return;
+function intent(DOM) {
+  return {
+    newItems: DOM.get('input', 'change').
+      map(evt => {
+        var value = evt.target.value;
+        evt.target.value = '';
+        evt.target.focus();
+        return value;
+      }).
+      filter(val => val.trim().length).
+      map(val => ({
+        id: _.uniqueId('item_'),
+        val: val
+      })),
+    deletedItems: DOM.get('li', 'remove').
+      map(evt => evt.detail)
   }
-
-  var patches = diff(tree, newTree);
-  rootNode = patch(rootNode, patches);
-  tree = newTree;
 }
 
-function RemoveItemAction(item) {
-  return collection => collection.filter(i => i.id !== item.id);
+function model(actions) {
+  return Observable.merge(
+    actions.newItems.map(StateChangers.AddItem),
+    actions.deletedItems.map(StateChangers.RemoveById)
+  ).
+    applyTo({
+      items: []
+    });
 }
 
-function AddItemAction(item) {
-  return collection => collection.concat(item)
+function view(state) {
+  return state.map(state =>
+      h('div', [
+        h('input', {type: 'text'}),
+        h('ul', state.items.map(item =>
+            h('item', {
+              val: item.val,
+              id: item.id,
+              key: item.id
+            })
+        ))
+      ])
+  );
 }
 
+function main({DOM}) {
+  return {
+    DOM: view(model(intent(DOM)))
+      .catch((err) => {
+        console.error(err.stack);
+        debugger;
+      })
+  }
+}
+
+window.debug = run(main, {
+  DOM: makeDOMDriver('#app', {
+    item: require('./element/item')
+  })
+});
